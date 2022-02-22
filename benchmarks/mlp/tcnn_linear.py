@@ -37,12 +37,13 @@ def bench(device_id, n_features, n_layers, forward_only):
         "activation": "ReLU",
         "output_activation": "None",
         "n_neurons": ${n_features},
-        "n_hidden_layers": 10
+        "n_hidden_layers": ${n_layers}
     }
     }'''
 
     json_template = string.Template(json_str)
-    config = json.loads(json_template.safe_substitute({"n_features": n_features}))
+    config = json.loads(json_template.safe_substitute({"n_features": n_features,
+                                                       "n_layers": n_layers}))
     
     ## with open("./model_sample.json") as fp:
     ##     config = json.load(fp)
