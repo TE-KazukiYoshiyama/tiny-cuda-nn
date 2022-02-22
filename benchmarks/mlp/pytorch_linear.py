@@ -88,9 +88,9 @@ def bench(device_id, type_config, n_features, n_layers, forward_only):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--device_id", type=str, default="0")
-    parser.add_argument("--type_configs", type=list, nargs="+", default=["float", "half"])
-    parser.add_argument("--n_layers", type=list, nargs="+", default=[12, 24, 36])
-    parser.add_argument("--n_features", type=list, nargs="+", default=[32, 64, 128])
+    parser.add_argument("--type_configs", type=str, nargs="+", default=["float", "half"])
+    parser.add_argument("--n_layers", type=str, nargs="+", default=[12, 24, 36])
+    parser.add_argument("--n_features", type=str, nargs="+", default=[32, 64, 128])
     parser.add_argument("--forward_only", action="store_true")
     
     args = parser.parse_args()

@@ -17,7 +17,7 @@ def main(args):
 
 
 def bench(device_id, n_features, n_layers, forward_only):
-    B, R, N, D = 4, 512, 256, 3
+    B, R, N, D = 1, 512, 4096, 3
     device = torch.device(f"cuda:{device_id}")
     n_iters = 100
 
@@ -76,8 +76,8 @@ def bench(device_id, n_features, n_layers, forward_only):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--device_id", type=str, default="0")
-    parser.add_argument("--n_layers", type=list, nargs="+", default=[12, 24, 36])
-    parser.add_argument("--n_features", type=list, nargs="+", default=[32, 64, 128])
+    parser.add_argument("--n_layers", type=int, nargs="+", default=[12, 24, 36])
+    parser.add_argument("--n_features", type=int, nargs="+", default=[32, 64, 128])
     parser.add_argument("--forward_only", action="store_true")
     
     args = parser.parse_args()
