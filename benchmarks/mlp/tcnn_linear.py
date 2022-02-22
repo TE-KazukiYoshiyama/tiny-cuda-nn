@@ -17,7 +17,7 @@ def main(args):
 
 
 def bench(device_id, n_features, n_layers, forward_only):
-    B, R, N, D = 1, 512, 4096, 3
+    B, R, N, D = 4, 512, 256, 3
     device = torch.device(f"cuda:{device_id}")
     n_iters = 100
 
