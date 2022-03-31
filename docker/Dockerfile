@@ -24,6 +24,7 @@ RUN echo "Building tiny-cuda-nn ..." \
     && cmake . -B build \
     && cmake --build build --config RelWithDebInfo -j 16
 
+
 RUN echo "Installing PyTorch" \
     && apt-get install -y python3-pip \
     && pip3 install --upgrade pip \
@@ -32,10 +33,11 @@ RUN echo "Installing PyTorch" \
 
 
 # torch.cuda.is_available fails with docker build...
-#RUN echo "Installing PyTorch extension ..." \
-#    && cd tiny-cuda-nn/bindings/torch \
-#    && python3 setup.py install
+RUN echo "Installing PyTorch extension ..." \
+    && cd tiny-cuda-nn/bindings/torch \
+    && python3 setup.py install
 
+RUN export PYTHONPATH=/opt/tiny-cuda-nn/bindings/torch:$PYTHONPATH
 
 WORKDIR /opt
 CMD [ "/bin/bash" ]    
