@@ -9,17 +9,9 @@ import torch.nn as nn
 import tinycudann as tcnn
 
 
-def main(args):
-    print(f"Tiny Cuda NN")
-    for n_features in args.n_features:
-        for n_layers in args.n_layers:
-            bench(args.device_id, n_features, n_layers, args.forward_only, args.inference_only)
-
-
-def bench(device_id, n_features, n_layers, forward_only, inference_only):
-    B, R, N, D = 4, 512, 256, n_features
+def bench(device_id, n_iters, W, L, p, forward_only, inference_only, warmup):
+    B, D = 2 ** p, W
     device = torch.device(f"cuda:{device_id}")
-    n_iters = 100
 
     json_str = '''{
     "loss": {
@@ -36,14 +28,14 @@ def bench(device_id, n_features, n_layers, forward_only, inference_only):
         "otype": "FullyFusedMLP",
         "activation": "ReLU",
         "output_activation": "ReLU",
-        "n_neurons": ${n_features},
-        "n_hidden_layers": ${n_layers}
+        "n_neurons": ${W},
+        "n_hidden_layers": ${L}
     }
     }'''
 
     json_template = string.Template(json_str)
-    config = json.loads(json_template.safe_substitute({"n_features": n_features,
-                                                       "n_layers": n_layers}))
+    config = json.loads(json_template.safe_substitute({"W": W,
+                                                       "L": L}))
     
     ## with open("./model_sample.json") as fp:
     ##     config = json.load(fp)
@@ -55,13 +47,23 @@ def bench(device_id, n_features, n_layers, forward_only, inference_only):
 
     ## encoding = tcnn.Encoding(n_input_dims, config["encoding"])
 
-    D_input = n_features
-    model = tcnn.Network(D_input, n_features, config["network"])
+    def watch_time(func):
+        def wrapper(*args, **kwargs):
+            st = time.perf_counter()
+            func(*args, **kwargs)
+            et = time.perf_counter()
+            return et - st
+        return wrapper
+
+    D_input = W
+    model = tcnn.Network(D_input, W, config["network"])
 
     # the grad computation wrt the first input is very slow..., so set as False
-    x = torch.randn(B*R*N, D_input, dtype=torch.float16, requires_grad=False).to(device)
-    dy = torch.randn(B*R*N, n_features, dtype=torch.float16).to(device)
-    def evaluate():
+    x = torch.randn(B, D_input, dtype=torch.float16, requires_grad=False).to(device)
+    dy = torch.randn(B, W, dtype=torch.float16).to(device)
+
+    @watch_time
+    def bench_ffmlp():
         for i in range(n_iters):
             if inference_only:
                 with torch.no_grad():
@@ -72,18 +74,26 @@ def bench(device_id, n_features, n_layers, forward_only, inference_only):
                 y.backward(dy)
         y.cpu()
         
-    evaluate()
-    st = time.perf_counter()
-    evaluate()
-    et = time.perf_counter() - st
-    print(f"{n_features},{n_layers},{et}")
+    et_ffmlp = bench_ffmlp()
+    if not warmup:
+        print(f"2**{p}, {W}, {L}, {et_ffmlp}")
 
+    
+def main(args):
+    for L in args.n_layers:
+        for W in args.widths:
+            for p in args.powers:
+                bench(args.device_id, args.n_iters, W, L, p, args.forward_only, args.inference_only, True)
+                bench(args.device_id, args.n_iters, W, L, p, args.forward_only, args.inference_only, False)
 
+                
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--device_id", type=str, default="0")
-    parser.add_argument("--n_layers", type=int, nargs="+", default=[12, 24, 36])
-    parser.add_argument("--n_features", type=int, nargs="+", default=[32, 64, 128])
+    parser.add_argument('--n_iters', type=int, default=100, help="")
+    parser.add_argument('--powers', type=int, nargs='+', help="2**this is batch size")
+    parser.add_argument("--n_layers", type=int, nargs="+")
+    parser.add_argument('--widths', type=int, nargs='+', help="")
     parser.add_argument("--forward_only", action="store_true")
     parser.add_argument("--inference_only", action="store_true")
     
